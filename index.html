@@ -55,8 +55,8 @@
         A - Turn left<br>
         D - Turn right<br>
         SPACE - Jump<br>
-        Middle Mouse - Detach camera<br>
-        Scroll - Zoom (detached)<br>
+        Middle Mouse - Bird's Eye View<br>
+        Scroll - Zoom (bird's eye)<br>
         R - Return to player<br>
         <br>
         <span id="camera-mode-text">Walk around the planet!</span>
@@ -181,13 +181,17 @@
         // Store spawn cube reference
         let spawnCube = null;
 
-        // Blender-style camera controls
+        // Bird's eye camera controls
         let detachedCamera = false;
-        let detachedCameraDistance = 5;
-        let detachedCameraRotation = { theta: 0, phi: Math.PI / 4 }; // Spherical coordinates
-        let detachedCameraTarget = new THREE.Vector3(0, 0, 0);
-        const minCameraDistance = 2;
-        const maxCameraDistance = 50;
+        let birdEyeDistance = 25; // Distance from origin in bird's eye view
+        let birdEyeTilt = Math.PI / 6; // 30 degree tilt from top-down (0 = straight down, PI/2 = horizontal)
+        let birdEyeRotation = new THREE.Quaternion(); // Independent rotation for bird's eye view
+        let isDragging = false;
+
+        // Saved state for returning from bird's eye view
+        let savedPlanetRotation = new THREE.Quaternion();
+        let savedCharacterRotation = 0;
+        let savedCharacterPosition = new THREE.Vector3();
 
         // Sign content data
         const signData = {
@@ -597,55 +601,66 @@
 
         let introActive = true;
 
-        // Mouse controls for Blender-style camera
-        let isMiddleMouseDown = false;
-        const rotationSensitivity = 0.005;
-
+        // Mouse controls for bird's eye camera
         document.addEventListener('mousedown', (e) => {
             if (e.button === 1 && !introActive) { // Middle mouse button
                 e.preventDefault();
-                isMiddleMouseDown = true;
 
                 if (!detachedCamera) {
-                    // Entering detached camera mode
+                    // Toggle to bird's eye view - save current state
                     detachedCamera = true;
-                    detachedCameraTarget.copy(characterGroup.position);
 
-                    // Calculate initial spherical coordinates from current camera position
-                    const cameraToTarget = new THREE.Vector3().subVectors(camera.position, detachedCameraTarget);
-                    detachedCameraDistance = cameraToTarget.length();
-                    detachedCameraRotation.theta = Math.atan2(cameraToTarget.x, cameraToTarget.z);
-                    detachedCameraRotation.phi = Math.acos(cameraToTarget.y / detachedCameraDistance);
+                    // Save planet rotation, character rotation, and position
+                    savedPlanetRotation.copy(planetGroup.quaternion);
+                    savedCharacterRotation = characterRotation;
+                    savedCharacterPosition.copy(characterGroup.position);
 
-                    document.getElementById('camera-mode-text').textContent = 'Detached Camera - Middle Mouse: Rotate, Scroll: Zoom, R: Return to Player';
-                    console.log('Detached camera mode - Middle mouse to rotate, scroll to zoom, R to return');
+                    // Start bird's eye rotation from current planet rotation
+                    birdEyeRotation.copy(planetGroup.quaternion);
+
+                    // Hide character
+                    characterGroup.visible = false;
+
+                    document.getElementById('camera-mode-text').textContent = 'Bird\'s Eye View - Drag to Rotate, R: Return to Player';
+                    console.log('Bird\'s eye view activated - state saved');
+                } else {
+                    // Start dragging
+                    isDragging = true;
                 }
             }
         });
 
         document.addEventListener('mouseup', (e) => {
-            if (e.button === 1) {
-                isMiddleMouseDown = false;
+            if (e.button === 1 && detachedCamera) {
+                isDragging = false;
             }
         });
 
         document.addEventListener('mousemove', (e) => {
-            if (isMiddleMouseDown && detachedCamera) {
-                detachedCameraRotation.theta -= e.movementX * rotationSensitivity;
-                detachedCameraRotation.phi -= e.movementY * rotationSensitivity;
+            if (isDragging && detachedCamera && !introActive) {
+                // Rotate the planet independently in bird's eye view
+                const rotateSpeed = 0.005;
 
-                // Clamp phi to prevent flipping
-                detachedCameraRotation.phi = Math.max(0.1, Math.min(Math.PI - 0.1, detachedCameraRotation.phi));
+                // Create rotation quaternions (both reversed for natural drag feel)
+                const deltaYaw = new THREE.Quaternion();
+                deltaYaw.setFromAxisAngle(new THREE.Vector3(0, 1, 0), e.movementX * rotateSpeed);
+
+                const deltaPitch = new THREE.Quaternion();
+                deltaPitch.setFromAxisAngle(new THREE.Vector3(1, 0, 0), e.movementY * rotateSpeed);
+
+                // Apply rotations to bird's eye rotation
+                birdEyeRotation.multiplyQuaternions(deltaYaw, birdEyeRotation);
+                birdEyeRotation.multiplyQuaternions(deltaPitch, birdEyeRotation);
             }
         });
 
-        // Scroll wheel for zoom
+        // Scroll wheel for zoom in/out in bird's eye view
         document.addEventListener('wheel', (e) => {
             if (detachedCamera && !introActive) {
                 e.preventDefault();
-                const zoomSpeed = 0.1;
-                detachedCameraDistance += e.deltaY * zoomSpeed;
-                detachedCameraDistance = Math.max(minCameraDistance, Math.min(maxCameraDistance, detachedCameraDistance));
+                const zoomSpeed = 0.02; // Smaller jumps for finer control
+                birdEyeDistance += e.deltaY * zoomSpeed;
+                birdEyeDistance = Math.max(8, Math.min(50, birdEyeDistance)); // Zoom range from 8 to 50 units (closer minimum)
             }
         }, { passive: false });
 
@@ -664,9 +679,18 @@
             // Return to player with 'R' key
             if (key === 'r' && !introActive && detachedCamera) {
                 detachedCamera = false;
-                isMiddleMouseDown = false;
+
+                // Restore saved state
+                planetGroup.quaternion.copy(savedPlanetRotation);
+                characterRotation = savedCharacterRotation;
+                characterGroup.position.copy(savedCharacterPosition);
+                characterGroup.rotation.y = characterRotation;
+
+                // Show character again
+                characterGroup.visible = true;
+
                 document.getElementById('camera-mode-text').textContent = 'Walk around the planet!';
-                console.log('Returned to player-locked camera');
+                console.log('Returned to player-locked camera - state restored');
             }
 
             if (key in keys && !introActive) {
@@ -851,7 +875,7 @@
                     currentMoveSpeed = Math.max(currentMoveSpeed - moveDeceleration * deltaTime, 0);
                 }
 
-                if (currentMoveSpeed > 0 && (keys.w || keys.s)) {
+                if (currentMoveSpeed > 0 && (keys.w || keys.s) && !detachedCamera) {
                     const direction = keys.w ? -1 : 1;
 
                     const forwardWorld = new THREE.Vector3(
@@ -897,15 +921,16 @@
 
                 // Camera update based on mode
                 if (detachedCamera) {
-                    // Detached camera mode - orbit around world center
-                    detachedCameraTarget.set(0, 0, 0);
+                    // Bird's eye view - camera above the world with a slight tilt
+                    // Apply independent bird's eye rotation to planet
+                    planetGroup.quaternion.copy(birdEyeRotation);
 
-                    const x = detachedCameraTarget.x + detachedCameraDistance * Math.sin(detachedCameraRotation.phi) * Math.sin(detachedCameraRotation.theta);
-                    const y = detachedCameraTarget.y + detachedCameraDistance * Math.cos(detachedCameraRotation.phi);
-                    const z = detachedCameraTarget.z + detachedCameraDistance * Math.sin(detachedCameraRotation.phi) * Math.cos(detachedCameraRotation.theta);
+                    // Position camera above the origin (world center) with tilt
+                    const cameraHeight = birdEyeDistance * Math.cos(birdEyeTilt);
+                    const cameraHorizontalOffset = birdEyeDistance * Math.sin(birdEyeTilt);
 
-                    camera.position.set(x, y, z);
-                    camera.lookAt(detachedCameraTarget);
+                    camera.position.set(0, cameraHeight, cameraHorizontalOffset);
+                    camera.lookAt(0, 0, 0); // Look at world center
                 } else {
                     // Normal player-locked camera mode - update camera position
                     const targetCameraDistance = (keys.w || keys.s) ? cameraDistanceWalking : cameraDistanceIdle;
@@ -938,7 +963,7 @@
                 }
 
                 // Check proximity to signs and show/hide labels
-                const proximityRadius = 1.0; // Show labels within 1.0 units
+                const proximityRadius = detachedCamera ? 6.0 : 3.0; // Much larger radius in bird's eye view
 
                 signLabels.forEach(signInfo => {
                     // Get current world position of the sign (accounts for planet rotation)
@@ -951,6 +976,15 @@
                     // Show label if within radius, hide otherwise
                     if (distance < proximityRadius) {
                         signInfo.labelObject.visible = true;
+
+                        // Scale font size in bird's eye view
+                        if (detachedCamera) {
+                            signInfo.labelObject.element.style.fontSize = '16px';
+                            signInfo.labelObject.element.style.padding = '10px 14px';
+                        } else {
+                            signInfo.labelObject.element.style.fontSize = '12px';
+                            signInfo.labelObject.element.style.padding = '8px 12px';
+                        }
                     } else {
                         signInfo.labelObject.visible = false;
                     }
