@@ -150,7 +150,7 @@
         document.body.appendChild(labelRenderer.domElement);
 
         // Lighting
-        const ambientLight = new THREE.AmbientLight(0x808080, 2.5);
+        const ambientLight = new THREE.AmbientLight(0x808080, 3.0); // Increased for brighter nighttime
         scene.add(ambientLight);
 
         const sunLight = new THREE.DirectionalLight(0xffffff, 2.0);
@@ -341,12 +341,14 @@
         let mixer = null;
         let walkAction = null;
         let idleAction = null;
+        let jumpAction = null;
         let characterModel = null;
         let characterLoaded = false;
 
         // Animation state
         const animationState = {
-            isWalking: false
+            isWalking: false,
+            isJumping: false
         };
 
         // Load penguin character model
@@ -383,17 +385,23 @@
                     ) || gltf.animations[0]; // Fallback to first animation
                     
                     // Try to find idle animation
-                    const idleAnim = gltf.animations.find(a => 
-                        a.name.toLowerCase().includes('idle') || 
+                    const idleAnim = gltf.animations.find(a =>
+                        a.name.toLowerCase().includes('idle') ||
                         a.name.toLowerCase().includes('standing')
                     );
-                    
+
+                    // Try to find jump animation
+                    const jumpAnim = gltf.animations.find(a =>
+                        a.name.toLowerCase().includes('jump') ||
+                        a.name.toLowerCase().includes('hop')
+                    );
+
                     if (walkAnim) {
                         walkAction = mixer.clipAction(walkAnim);
                         walkAction.setEffectiveTimeScale(1.2); // Speed up animation
                         console.log('Walk animation set:', walkAnim.name);
                     }
-                    
+
                     if (idleAnim) {
                         idleAction = mixer.clipAction(idleAnim);
                         idleAction.play();
@@ -401,6 +409,14 @@
                     } else if (walkAction) {
                         // If no idle, just stop walk animation when not moving
                         console.log('No idle animation found, using walk animation only');
+                    }
+
+                    if (jumpAnim) {
+                        jumpAction = mixer.clipAction(jumpAnim);
+                        jumpAction.setLoop(THREE.LoopOnce); // Play once per jump
+                        jumpAction.clampWhenFinished = true; // Hold last frame
+                        jumpAction.setEffectiveTimeScale(1.5); // Play 1x faster
+                        console.log('Jump animation set:', jumpAnim.name);
                     }
                 } else {
                     console.warn('No animations found in penguin model');
@@ -539,12 +555,24 @@
         moonGlow.position.copy(moon.position);
         planetGroup.add(moonGlow);
 
-        const moonLight = new THREE.PointLight(0xaabbdd, 0.8, 100);
+        const moonLight = new THREE.PointLight(0xaabbdd, 1.0, 100); // Increased from 0.8 to 1.5
         moonLight.position.copy(moon.position);
         planetGroup.add(moonLight);
 
-        const moonDirectionalLight = new THREE.DirectionalLight(0x8899cc, 0.25);
+        const moonDirectionalLight = new THREE.DirectionalLight(0x8899cc, 0.3); // Increased from 0.25 to 0.6 for visible shadows
         moonDirectionalLight.position.copy(moon.position);
+        moonDirectionalLight.castShadow = true; // Enable moon shadows
+        moonDirectionalLight.shadow.camera.left = -30;
+        moonDirectionalLight.shadow.camera.right = 30;
+        moonDirectionalLight.shadow.camera.top = 30;
+        moonDirectionalLight.shadow.camera.bottom = -30;
+        moonDirectionalLight.shadow.camera.near = 0.5;
+        moonDirectionalLight.shadow.camera.far = 150;
+        moonDirectionalLight.shadow.mapSize.width = 4096; // Lower res than sun for performance
+        moonDirectionalLight.shadow.mapSize.height = 4096;
+        moonDirectionalLight.shadow.bias = -0.0001;
+        moonDirectionalLight.shadow.normalBias = 0.02;
+        moonDirectionalLight.shadow.radius = 3; // Softer shadows for moonlight
         planetGroup.add(moonDirectionalLight);
 
         // Cloud system
@@ -570,7 +598,7 @@
 
         // Movement acceleration
         let currentMoveSpeed = 0.0;
-        const maxMoveSpeed = 0.2;
+        const maxMoveSpeed = 0.125;
         const moveAcceleration = 0.8; // Speed ramping per second
         const moveDeceleration = 1.5; // Faster stop
 
@@ -593,7 +621,9 @@
             gravity: 20.0,
             isGrounded: false,
             jumpForce: 5.0,
-            characterRadius: 0.1
+            characterRadius: 0.1,
+            jumpCharging: false,
+            jumpChargeTime: 0
         };
 
         const raycaster = new THREE.Raycaster();
@@ -700,9 +730,17 @@
                 keys.shift = true;
             }
 
-            if (e.code === 'Space' && !introActive && physics.isGrounded) {
-                physics.velocity.y = physics.jumpForce;
-                physics.isGrounded = false;
+            if (e.code === 'Space' && !introActive && physics.isGrounded && !physics.jumpCharging) {
+                // Start jump charge-up
+                physics.jumpCharging = true;
+                physics.jumpChargeTime = 0;
+                animationState.isJumping = true;
+
+                // Play jump animation (charge-up) if available
+                if (jumpAction) {
+                    jumpAction.reset();
+                    jumpAction.play();
+                }
             }
         });
 
@@ -741,8 +779,21 @@
             if (mixer && characterLoaded) {
                 mixer.update(deltaTime);
 
-                // Handle walk/idle transitions
-                if (walkAction && idleAction) {
+                // Check if jump animation finished and character is grounded
+                if (animationState.isJumping && physics.isGrounded) {
+                    animationState.isJumping = false;
+                }
+
+                // Handle jump animation (highest priority)
+                if (jumpAction && animationState.isJumping) {
+                    if (!jumpAction.isRunning()) {
+                        // Jump animation takes priority, fade out others
+                        if (walkAction && walkAction.isRunning()) walkAction.fadeOut(0.1);
+                        if (idleAction && idleAction.isRunning()) idleAction.fadeOut(0.1);
+                    }
+                }
+                // Handle walk/idle transitions (when not jumping)
+                else if (walkAction && idleAction) {
                     if (animationState.isWalking) {
                         // Switch to walk
                         if (idleAction.isRunning() && !walkAction.isRunning()) {
@@ -801,6 +852,19 @@
 
             // Gameplay
             if (!introActive) {
+                // Handle jump charge-up delay
+                if (physics.jumpCharging) {
+                    physics.jumpChargeTime += deltaTime;
+                    const jumpChargeDelay = 0.3; // 300ms charge-up delay
+
+                    if (physics.jumpChargeTime >= jumpChargeDelay) {
+                        // Execute the jump after charge-up
+                        physics.velocity.y = physics.jumpForce;
+                        physics.isGrounded = false;
+                        physics.jumpCharging = false;
+                    }
+                }
+
                 // Character physics and movement (works in both modes)
                 physics.velocity.y -= physics.gravity * deltaTime;
                 const newY = characterGroup.position.y + physics.velocity.y * deltaTime;
@@ -963,7 +1027,7 @@
                 }
 
                 // Check proximity to signs and show/hide labels
-                const proximityRadius = detachedCamera ? 6.0 : 3.0; // Much larger radius in bird's eye view
+                const proximityRadius = detachedCamera ? 10.0 : 3.0; // Much larger radius in bird's eye view
 
                 signLabels.forEach(signInfo => {
                     // Get current world position of the sign (accounts for planet rotation)
