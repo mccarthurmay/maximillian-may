@@ -104,6 +104,38 @@
         Quality: Auto (Ultra)
     </div>
 
+    <!-- Escape Menu -->
+    <div id="menu-overlay"></div>
+    <div id="escape-menu">
+        <h2>Settings</h2>
+
+        <div class="menu-option">
+            <h3>Graphics Quality</h3>
+            <p>Adjust visual quality for better performance or visuals</p>
+            <button class="menu-button" id="quality-cycle-btn">
+                <span id="quality-mode-text">Auto</span>
+                <span class="current-value" id="quality-tier-text">Ultra</span>
+            </button>
+        </div>
+
+        <div class="menu-option">
+            <h3>Time of Day</h3>
+            <p>Control the sun/moon position and day/night cycle</p>
+            <div style="display: flex; align-items: center; gap: 15px; margin-top: 10px;">
+                <span style="color: rgba(255, 255, 255, 0.7); min-width: 60px;">Night</span>
+                <input type="range" id="time-slider" min="0" max="100" value="50" class="time-slider">
+                <span style="color: rgba(255, 255, 255, 0.7); min-width: 60px;">Day</span>
+            </div>
+            <div style="text-align: center; margin-top: 10px;">
+                <button class="menu-button" id="time-auto-btn" style="font-size: 0.9em; padding: 8px 15px;">
+                    <span id="time-mode-text">Auto Cycle</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="menu-close-hint">Press ESC to close</div>
+    </div>
+
     <div id="spotify-player">
         <button id="spotify-toggle" onclick="toggleSpotify(event)">−</button>
         <iframe id="spotify-iframe" style="border-radius:12px"
@@ -271,6 +303,163 @@
             0%, 100% { opacity: 1; }
             50% { opacity: 0.3; }
         }
+
+        /* Escape Menu Styles */
+        #escape-menu {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 500px;
+            max-width: 90vw;
+            background: rgba(20, 20, 30, 0.95);
+            border: 2px solid rgba(139, 195, 74, 0.5);
+            border-radius: 15px;
+            padding: 30px;
+            z-index: 9999;
+            display: none;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        #escape-menu.visible {
+            display: block;
+        }
+
+        #escape-menu h2 {
+            margin: 0 0 30px 0;
+            color: #8BC34A;
+            font-size: 2em;
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+
+        .menu-option {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .menu-option:hover {
+            background: rgba(139, 195, 74, 0.1);
+            border-color: rgba(139, 195, 74, 0.5);
+            transform: translateX(5px);
+        }
+
+        .menu-option h3 {
+            margin: 0 0 10px 0;
+            color: white;
+            font-size: 1.3em;
+        }
+
+        .menu-option p {
+            margin: 0 0 15px 0;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.95em;
+        }
+
+        .menu-button {
+            background: rgba(139, 195, 74, 0.8);
+            border: none;
+            border-radius: 5px;
+            padding: 10px 20px;
+            color: white;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .menu-button:hover {
+            background: rgba(139, 195, 74, 1);
+            transform: scale(1.05);
+        }
+
+        .menu-button:active {
+            transform: scale(0.95);
+        }
+
+        .current-value {
+            display: inline-block;
+            background: rgba(139, 195, 74, 0.3);
+            padding: 5px 15px;
+            border-radius: 5px;
+            margin-left: 10px;
+            color: #8BC34A;
+            font-weight: bold;
+        }
+
+        #menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9998;
+            display: none;
+        }
+
+        #menu-overlay.visible {
+            display: block;
+        }
+
+        .menu-close-hint {
+            text-align: center;
+            margin-top: 20px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 0.9em;
+        }
+
+        /* Time of Day Slider */
+        .time-slider {
+            flex: 1;
+            -webkit-appearance: none;
+            appearance: none;
+            height: 8px;
+            background: linear-gradient(to right, #1a1a2e 0%, #8BC34A 50%, #ffd700 100%);
+            border-radius: 5px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .time-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border: 2px solid #8BC34A;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .time-slider::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            background: #8BC34A;
+        }
+
+        .time-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: white;
+            border: 2px solid #8BC34A;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .time-slider::-moz-range-thumb:hover {
+            transform: scale(1.2);
+            background: #8BC34A;
+        }
     </style>
     <script type="importmap">
     {
@@ -357,7 +546,7 @@
             'sign4': 'Other interests/hobbies.',
             'sign5': 'This way to see my hobbies/passions.',
             'sign6': 'Then, I started exploring the adirondacks.',
-            "sign7": "WASD to move.", // Start sign
+            "sign7": "WASD to move. Space to jump.", // Start sign
             'sign8': 'I was born in Guangzhou, China. I only lived there for a short 5 years. We left for the US, my mom making a new life and my dad returning home.', // third
             'sign9': 'I had a great time growing up. Timeless memories were made with the friends I met, and now a few will remain life-long.', // left 2
             'sign10': 'Then, I took a leap of faith going to Colorado College, a small liberal arts school in Colorado Springs. I\'m grateful for who I am today, and it\'s safe to say that these past 3 years have been incredibly transformative. I wouldn\'t be who I am today if not for the people I surrounded myself with and the passions I chose to pursue.', // left three
@@ -374,8 +563,8 @@
             'sign21': 'Click the sign to see photography portfolio.',
             'sign22': 'Click the sign to see my videography portfolio.',
             'sign23': 'Thank You for Visiting!',
-            'sign24': 'Space to Jump. Scroll wheel to zoom.',
-            'sign25': 'F to toggle bird\'s eye view. Left click & drag to rotate.',
+            'sign24': 'Esc for pause menu. ',
+            'sign25': 'F to toggle bird\'s eye view. Left click & drag to rotate. Scroll wheel to zoom.',
             'sign26': 'X to reset entirely if you\'re in a pickle.'
         };
 
@@ -653,7 +842,8 @@
             color: 0xffffff,
             size: 0.1,
             transparent: true,
-            opacity: 1.0
+            opacity: 1.0,
+            depthWrite: false
         });
         const starsVertices = [];
         for (let i = 0; i < 1000; i++) {
@@ -957,7 +1147,13 @@
 
         // Mouse controls for bird's eye camera
         document.addEventListener('mousedown', (e) => {
-            if (e.button === 0 && detachedCamera && !introActive) { // Left mouse button for dragging in bird's eye view
+            // Check if clicking on the escape menu or its children
+            const escapeMenu = document.getElementById('escape-menu');
+            const isMenuOpen = escapeMenu.classList.contains('visible');
+            const clickedOnMenu = escapeMenu.contains(e.target);
+
+            if (e.button === 0 && detachedCamera && !introActive && !(isMenuOpen && clickedOnMenu)) {
+                // Left mouse button for dragging in bird's eye view (but not when menu is open and clicked)
                 e.preventDefault();
                 isDragging = true;
             }
@@ -1015,6 +1211,26 @@
                 setTimeout(() => {
                     document.getElementById('intro-screen').style.display = 'none';
                 }, 1000);
+                return;
+            }
+
+            // Toggle escape menu with 'Escape' key
+            if (e.key === 'Escape' && !introActive) {
+                const menu = document.getElementById('escape-menu');
+                const overlay = document.getElementById('menu-overlay');
+
+                if (menu.classList.contains('visible')) {
+                    // Close menu
+                    menu.classList.remove('visible');
+                    overlay.classList.remove('visible');
+                } else {
+                    // Open menu
+                    menu.classList.add('visible');
+                    overlay.classList.add('visible');
+
+                    // Update menu UI to reflect current state
+                    performanceManager.updateMenuUI();
+                }
                 return;
             }
 
@@ -1149,12 +1365,57 @@
             }
         };
 
+        // Escape menu handlers
+        document.getElementById('quality-cycle-btn').addEventListener('click', () => {
+            performanceManager.cycleQuality();
+        });
+
+        // Time of day slider handler
+        const timeSlider = document.getElementById('time-slider');
+        timeSlider.addEventListener('input', (e) => {
+            manualTimeValue = parseInt(e.target.value);
+            timeControlEnabled = true;
+            // Convert 0-100 to radians (0-2π for full cycle)
+            dayNightAngle = (manualTimeValue / 100) * Math.PI * 2;
+            updateTimeButtonText();
+        });
+
+        // Time auto/manual toggle
+        document.getElementById('time-auto-btn').addEventListener('click', () => {
+            timeControlEnabled = !timeControlEnabled;
+            updateTimeButtonText();
+            if (timeControlEnabled) {
+                // Set slider to current angle
+                manualTimeValue = Math.round((dayNightAngle / (Math.PI * 2)) * 100);
+                timeSlider.value = manualTimeValue;
+            }
+        });
+
+        function updateTimeButtonText() {
+            const btnText = document.getElementById('time-mode-text');
+            if (timeControlEnabled) {
+                btnText.textContent = 'Manual';
+                btnText.parentElement.style.background = 'rgba(139, 195, 74, 0.6)';
+            } else {
+                btnText.textContent = 'Auto Cycle';
+                btnText.parentElement.style.background = 'rgba(139, 195, 74, 0.8)';
+            }
+        }
+
+        // Close menu when clicking overlay
+        document.getElementById('menu-overlay').addEventListener('click', () => {
+            document.getElementById('escape-menu').classList.remove('visible');
+            document.getElementById('menu-overlay').classList.remove('visible');
+        });
+
         // Animation loop
         const moveSpeed = 0.2; // Movement speed per second (radians)
         const turnSpeed = 2; // Turn speed per second (radians)
         let characterRotation = Math.PI; // Start rotated 180 degrees
         const dayNightSpeed = 0.025; // Day/night cycle speed
         let dayNightAngle = 0;
+        let timeControlEnabled = false; // Manual time control vs auto cycle
+        let manualTimeValue = 50; // 0-100, where 0=night, 50=day, 100=night again
 
         // Performance Manager Class - Auto-adjusts quality based on FPS
         class PerformanceManager {
@@ -1350,10 +1611,16 @@
             }
 
             adjustShadowResolution(sunRes, moonRes) {
+                // Update sun shadow resolution
                 sunLight.shadow.mapSize.width = sunRes;
                 sunLight.shadow.mapSize.height = sunRes;
                 sunLight.shadow.map?.dispose();
                 sunLight.shadow.map = null;
+
+                // Preserve original shadow quality settings
+                sunLight.shadow.bias = -0.0001;
+                sunLight.shadow.normalBias = 0.02;
+                sunLight.shadow.radius = 2;
 
                 if (moonRes > 0) {
                     moonDirectionalLight.castShadow = true;
@@ -1361,6 +1628,10 @@
                     moonDirectionalLight.shadow.mapSize.height = moonRes;
                     moonDirectionalLight.shadow.map?.dispose();
                     moonDirectionalLight.shadow.map = null;
+
+                    // Preserve moon shadow settings
+                    moonDirectionalLight.shadow.bias = -0.0001;
+                    moonDirectionalLight.shadow.normalBias = 0.02;
                 } else {
                     moonDirectionalLight.castShadow = false;
                 }
@@ -1398,6 +1669,68 @@
                     minFPS: this.minFPS.toFixed(1),
                     tier: this.tiers[this.currentTier].name
                 };
+            }
+
+            cycleQuality() {
+                if (this.isAuto) {
+                    // Switch to manual mode at current tier
+                    this.isAuto = false;
+                    console.log(`Manual quality mode: ${this.tiers[this.currentTier].name}`);
+                    // Re-apply current tier to ensure settings are locked
+                    this.applyTier(this.currentTier);
+                } else {
+                    // Cycle through tiers: Ultra -> High -> Medium -> Low -> Very Low -> Potato -> Auto
+                    this.currentTier++;
+                    if (this.currentTier >= this.tiers.length) {
+                        // Back to auto mode - reset to Ultra (tier 0)
+                        this.isAuto = true;
+                        this.currentTier = 0;
+                        // IMPORTANT: Apply Ultra tier settings before switching to auto
+                        this.applyTier(0);
+                        console.log('Auto quality mode enabled - reset to Ultra');
+                    } else {
+                        this.applyTier(this.currentTier);
+                    }
+                }
+
+                // Update menu UI
+                this.updateMenuUI();
+
+                // Save preferences
+                localStorage.setItem('autoQuality', this.isAuto);
+                if (!this.isAuto) {
+                    localStorage.setItem('qualityTier', this.currentTier);
+                }
+
+                return this.getQualityModeText();
+            }
+
+            getQualityModeText() {
+                if (this.isAuto) {
+                    return { mode: 'Auto', tier: this.tiers[this.currentTier].name };
+                } else {
+                    return { mode: this.tiers[this.currentTier].name, tier: '' };
+                }
+            }
+
+            updateMenuUI() {
+                const modeText = document.getElementById('quality-mode-text');
+                const tierText = document.getElementById('quality-tier-text');
+
+                if (modeText && tierText) {
+                    const quality = this.getQualityModeText();
+                    modeText.textContent = quality.mode;
+
+                    if (quality.tier) {
+                        tierText.textContent = quality.tier;
+                        tierText.style.display = 'inline-block';
+                    } else {
+                        tierText.style.display = 'none';
+                    }
+                }
+
+                // Also update the quality indicator
+                this.updateUI();
             }
         }
 
@@ -1559,8 +1892,10 @@
                 }
             }
 
-            // Day/night cycle
-            dayNightAngle += dayNightSpeed * deltaTime;
+            // Day/night cycle (only auto-increment if not manually controlled)
+            if (!timeControlEnabled) {
+                dayNightAngle += dayNightSpeed * deltaTime;
+            }
 
             const sunRotationAxis = new THREE.Vector3(1, 0, 0);
             const sunBasePosition = new THREE.Vector3(10, 10, 10).normalize().multiplyScalar(sunDistance);
