@@ -1,0 +1,162 @@
+// ===================================
+// LIGHTING
+// ===================================
+
+import * as THREE from 'three';
+import { planetGroup } from './scene.js';
+import { SUN_DISTANCE, SUN_RADIUS, MOON_DISTANCE, MOON_RADIUS, DAY_NIGHT_SPEED } from './config.js';
+
+// Ambient light
+export const ambientLight = new THREE.AmbientLight(0x808080, 3.0);
+
+// Sun light
+export const sunLight = new THREE.DirectionalLight(0xffffff, 3.0);
+sunLight.position.set(10, 10, 10);
+sunLight.castShadow = true;
+sunLight.shadow.camera.left = -30;
+sunLight.shadow.camera.right = 30;
+sunLight.shadow.camera.top = 30;
+sunLight.shadow.camera.bottom = -30;
+sunLight.shadow.camera.near = 0.5;
+sunLight.shadow.camera.far = 150;
+sunLight.shadow.mapSize.width = 8192;
+sunLight.shadow.mapSize.height = 8192;
+sunLight.shadow.bias = -0.0001;
+sunLight.shadow.normalBias = 0.02;
+sunLight.shadow.radius = 2;
+
+// Sun mesh
+const sunGeometry = new THREE.SphereGeometry(SUN_RADIUS, 32, 32);
+const sunMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffffdd,
+    fog: false
+});
+export const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+sun.position.set(10, 10, 10).normalize().multiplyScalar(SUN_DISTANCE);
+
+// Sun glow layers
+const sunGlowGeometry = new THREE.SphereGeometry(SUN_RADIUS * 1.6, 32, 32);
+const sunGlowMaterial = new THREE.MeshBasicMaterial({
+    color: 0xffdd99,
+    transparent: true,
+    opacity: 0.5,
+    fog: false
+});
+export const sunGlow = new THREE.Mesh(sunGlowGeometry, sunGlowMaterial);
+sunGlow.position.copy(sun.position);
+
+const sunGlow2Geometry = new THREE.SphereGeometry(SUN_RADIUS * 2.2, 32, 32);
+const sunGlow2Material = new THREE.MeshBasicMaterial({
+    color: 0xffbb66,
+    transparent: true,
+    opacity: 0.25,
+    fog: false
+});
+export const sunGlow2 = new THREE.Mesh(sunGlow2Geometry, sunGlow2Material);
+sunGlow2.position.copy(sun.position);
+
+// Moon mesh
+const moonGeometry = new THREE.SphereGeometry(MOON_RADIUS, 32, 32);
+const moonMaterial = new THREE.MeshBasicMaterial({
+    color: 0xeeeeff,
+    fog: false
+});
+export const moon = new THREE.Mesh(moonGeometry, moonMaterial);
+const sunDirection = new THREE.Vector3(10, 10, 10).normalize();
+moon.position.copy(sunDirection).multiplyScalar(-MOON_DISTANCE);
+
+// Moon glow
+const moonGlowGeometry = new THREE.SphereGeometry(MOON_RADIUS * 1.5, 32, 32);
+const moonGlowMaterial = new THREE.MeshBasicMaterial({
+    color: 0xccddff,
+    transparent: true,
+    opacity: 0.4,
+    fog: false
+});
+export const moonGlow = new THREE.Mesh(moonGlowGeometry, moonGlowMaterial);
+moonGlow.position.copy(moon.position);
+
+// Moon lights
+export const moonLight = new THREE.PointLight(0xaabbdd, 1.0, 100);
+moonLight.position.copy(moon.position);
+
+export const moonDirectionalLight = new THREE.DirectionalLight(0x8899cc, 0.3);
+moonDirectionalLight.position.copy(moon.position);
+moonDirectionalLight.castShadow = true;
+moonDirectionalLight.shadow.camera.left = -30;
+moonDirectionalLight.shadow.camera.right = 30;
+moonDirectionalLight.shadow.camera.top = 30;
+moonDirectionalLight.shadow.camera.bottom = -30;
+moonDirectionalLight.shadow.camera.near = 0.5;
+moonDirectionalLight.shadow.camera.far = 150;
+moonDirectionalLight.shadow.mapSize.width = 4096;
+moonDirectionalLight.shadow.mapSize.height = 4096;
+moonDirectionalLight.shadow.bias = -0.0001;
+moonDirectionalLight.shadow.normalBias = 0.02;
+moonDirectionalLight.shadow.radius = 3;
+
+// Day/night cycle state
+export let dayNightAngle = 0;
+export let timeControlEnabled = false;
+export let manualTimeValue = 50;
+
+export function setTimeControlEnabled(enabled) {
+    timeControlEnabled = enabled;
+}
+
+export function setManualTimeValue(value) {
+    manualTimeValue = value;
+}
+
+export function setDayNightAngle(angle) {
+    dayNightAngle = angle;
+}
+
+// Add all lighting to scene
+export function addLightingToScene(scene) {
+    scene.add(ambientLight);
+    planetGroup.add(sunLight);
+    planetGroup.add(sun);
+    planetGroup.add(sunGlow);
+    planetGroup.add(sunGlow2);
+    planetGroup.add(moon);
+    planetGroup.add(moonGlow);
+    planetGroup.add(moonLight);
+    planetGroup.add(moonDirectionalLight);
+}
+
+// Update day/night cycle
+export function updateDayNightCycle(deltaTime) {
+    // Auto-increment angle if not manually controlled
+    if (!timeControlEnabled) {
+        dayNightAngle += DAY_NIGHT_SPEED * deltaTime;
+    }
+
+    const sunRotationAxis = new THREE.Vector3(1, 0, 0);
+    const sunBasePosition = new THREE.Vector3(10, 10, 10).normalize().multiplyScalar(SUN_DISTANCE);
+    sun.position.copy(sunBasePosition);
+    sun.position.applyAxisAngle(sunRotationAxis, dayNightAngle);
+    sunGlow.position.copy(sun.position);
+    sunGlow2.position.copy(sun.position);
+    sunLight.position.copy(sun.position);
+
+    sunLight.target.position.set(0, 0, 0);
+    sunLight.target.updateMatrixWorld();
+
+    moon.position.copy(sun.position).multiplyScalar(-1);
+    moonGlow.position.copy(moon.position);
+    moonLight.position.copy(moon.position);
+    moonDirectionalLight.position.copy(moon.position);
+
+    moonDirectionalLight.target.position.set(0, 0, 0);
+    moonDirectionalLight.target.updateMatrixWorld();
+
+    return sun.position.y;
+}
+
+// Get sun direction for atmosphere shader
+export function getSunDirection() {
+    const sunWorldPos = new THREE.Vector3();
+    sun.getWorldPosition(sunWorldPos);
+    return sunWorldPos.clone().sub(new THREE.Vector3(0, 0, 0)).normalize();
+}

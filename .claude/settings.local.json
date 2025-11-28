@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(\"c:\\Users\\Max\\OneDrive\\Documents\\Github\\Portfolio\\index.html.new\")"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
