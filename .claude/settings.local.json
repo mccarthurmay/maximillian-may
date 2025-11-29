@@ -1,7 +1,9 @@
 {
   "permissions": {
     "allow": [
-      "Bash(\"c:\\Users\\Max\\OneDrive\\Documents\\Github\\Portfolio\\index.html.new\")"
+      "Bash(\"c:\\Users\\Max\\OneDrive\\Documents\\Github\\Portfolio\\index.html.new\")",
+      "Bash(git add:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []

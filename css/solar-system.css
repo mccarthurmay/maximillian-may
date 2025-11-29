@@ -1,0 +1,321 @@
+/* ===================================
+   SOLAR SYSTEM STYLES
+   =================================== */
+
+:root {
+    --space-black: #0a0a0a;
+    --star-white: #ffffff;
+    --sun-gold: #fdb813;
+    --art-pink: #ff6b9d;
+    --video-blue: #4a90e2;
+    --photo-purple: #9b59b6;
+    --blog-green: #2ecc71;
+    --portfolio-orange: #f39c12;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--space-black);
+    color: var(--star-white);
+    overflow: hidden;
+}
+
+/* ===================================
+   SOLAR SYSTEM CONTAINER
+   =================================== */
+
+#solar-system-container {
+    width: 100%;
+    height: 100vh;
+    position: relative;
+    background: var(--space-black);
+    overflow: hidden;
+}
+
+#solar-canvas {
+    width: 100%;
+    height: 100%;
+    cursor: grab;
+}
+
+#solar-canvas:active {
+    cursor: grabbing;
+}
+
+/* ===================================
+   TITLE OVERLAY
+   =================================== */
+
+.solar-title-overlay {
+    position: absolute;
+    top: 40px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    z-index: 10;
+    pointer-events: none;
+    animation: fadeIn 2s ease-in-out;
+}
+
+.solar-title {
+    font-size: 4rem;
+    font-weight: 300;
+    letter-spacing: 8px;
+    color: var(--sun-gold);
+    text-shadow:
+        0 0 20px rgba(253, 184, 19, 0.6),
+        0 0 40px rgba(253, 184, 19, 0.4),
+        0 0 60px rgba(253, 184, 19, 0.2);
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.solar-subtitle {
+    font-size: 1.4rem;
+    font-weight: 300;
+    letter-spacing: 3px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 15px;
+    text-transform: lowercase;
+}
+
+/* ===================================
+   INSTRUCTIONS
+   =================================== */
+
+.instructions {
+    position: absolute;
+    bottom: 30px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 1rem;
+    letter-spacing: 2px;
+    color: rgba(255, 255, 255, 0.5);
+    z-index: 10;
+    pointer-events: none;
+    animation: fadeIn 3s ease-in-out;
+}
+
+/* ===================================
+   PLANET PREVIEW OVERLAY
+   =================================== */
+
+.planet-preview-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(10, 10, 10, 0.95);
+    z-index: 100;
+    display: none;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+}
+
+.planet-preview-overlay.active {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    opacity: 1;
+}
+
+.back-button {
+    position: absolute;
+    top: 30px;
+    left: 30px;
+    background: transparent;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 12px 24px;
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 4px;
+    font-weight: 300;
+}
+
+.back-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.6);
+    transform: translateX(-5px);
+}
+
+.preview-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 30px;
+    max-width: 900px;
+    width: 90%;
+}
+
+.planet-name {
+    font-size: 3.5rem;
+    font-weight: 400;
+    letter-spacing: 4px;
+    margin: 0;
+    text-transform: uppercase;
+}
+
+.planet-status {
+    font-size: 1.2rem;
+    opacity: 0.6;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+#planet-preview-canvas {
+    width: 500px;
+    height: 500px;
+    border-radius: 50%;
+    position: relative;
+}
+
+.enter-button {
+    background: var(--sun-gold);
+    border: none;
+    color: var(--space-black);
+    padding: 18px 60px;
+    font-size: 1.4rem;
+    font-weight: 600;
+    letter-spacing: 4px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 4px;
+    text-transform: uppercase;
+    box-shadow:
+        0 0 20px rgba(253, 184, 19, 0.5),
+        0 0 40px rgba(253, 184, 19, 0.3);
+}
+
+.enter-button:hover {
+    background: #ffcc3f;
+    transform: scale(1.05);
+    box-shadow:
+        0 0 30px rgba(253, 184, 19, 0.7),
+        0 0 60px rgba(253, 184, 19, 0.5);
+}
+
+.enter-button:active {
+    transform: scale(0.98);
+}
+
+/* ===================================
+   PLANET LABELS (dynamically positioned)
+   =================================== */
+
+.planet-label {
+    position: absolute;
+    color: white;
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 4px;
+    backdrop-filter: blur(10px);
+}
+
+.planet-label.visible {
+    opacity: 1;
+}
+
+/* ===================================
+   ANIMATIONS
+   =================================== */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.6;
+    }
+}
+
+/* ===================================
+   RESPONSIVE
+   =================================== */
+
+@media (max-width: 1024px) {
+    .solar-title {
+        font-size: 3rem;
+        letter-spacing: 6px;
+    }
+
+    .solar-subtitle {
+        font-size: 1.2rem;
+    }
+
+    .planet-name {
+        font-size: 2.5rem;
+    }
+
+    #planet-preview-canvas {
+        width: 400px;
+        height: 400px;
+    }
+}
+
+@media (max-width: 768px) {
+    .solar-title {
+        font-size: 2rem;
+        letter-spacing: 4px;
+    }
+
+    .solar-subtitle {
+        font-size: 1rem;
+    }
+
+    .instructions {
+        font-size: 0.9rem;
+        bottom: 20px;
+    }
+
+    .planet-name {
+        font-size: 2rem;
+    }
+
+    #planet-preview-canvas {
+        width: 300px;
+        height: 300px;
+    }
+
+    .enter-button {
+        padding: 14px 40px;
+        font-size: 1.1rem;
+    }
+
+    .back-button {
+        top: 20px;
+        left: 20px;
+        padding: 10px 20px;
+        font-size: 1rem;
+    }
+}
