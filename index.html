@@ -9,6 +9,18 @@
 <body>
     <!-- Solar System Container -->
     <div id="solar-system-container">
+        <!-- Loading Screen -->
+        <div class="loading-screen" id="loading-screen">
+            <div class="loading-content">
+                <div class="loading-spinner"></div>
+                <h2 class="loading-title">Loading Solar System</h2>
+                <div class="loading-bar-container">
+                    <div class="loading-bar" id="loading-bar"></div>
+                </div>
+                <p class="loading-text" id="loading-text">Initializing...</p>
+            </div>
+        </div>
+
         <!-- Title Overlay -->
         <div class="solar-title-overlay">
             <h1 class="solar-title">Max's Solar System</h1>
@@ -27,13 +39,14 @@
         <div class="planet-preview-overlay" id="preview-overlay">
             <button class="back-button" id="back-btn">← BACK</button>
 
-            <div class="preview-content">
+            <!-- Top section: Planet name and status -->
+            <div class="preview-top">
                 <h2 class="planet-name" id="preview-planet-name">Planet Name</h2>
                 <div class="planet-status" id="preview-status"></div>
+            </div>
 
-                <!-- Preview canvas for world preview -->
-                <div id="planet-preview-canvas"></div>
-
+            <!-- Bottom section: Enter button -->
+            <div class="preview-bottom">
                 <button class="enter-button" id="enter-btn">ENTER</button>
             </div>
         </div>

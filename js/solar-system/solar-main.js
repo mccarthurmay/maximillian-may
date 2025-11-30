@@ -9,7 +9,8 @@ import {
     updateCamera,
     renderer,
     scene,
-    camera
+    camera,
+    state
 } from './solar-scene.js';
 
 import {
@@ -18,28 +19,78 @@ import {
 } from './solar-interactions.js';
 
 import {
-    initPreviewSystem
+    initPreviewSystem,
+    updatePreviewCamera
 } from './planet-preview.js';
 
 // Animation state
 let lastTime = 0;
 
+// Loading screen management
+const loadingScreen = document.getElementById('loading-screen');
+const loadingBar = document.getElementById('loading-bar');
+const loadingText = document.getElementById('loading-text');
+
+let loadingProgress = 0;
+
+// Update loading progress
+function updateLoadingProgress(progress, text) {
+    loadingProgress = progress;
+    loadingBar.style.width = `${progress}%`;
+    if (text) {
+        loadingText.textContent = text;
+    }
+}
+
+// Hide loading screen
+function hideLoadingScreen() {
+    updateLoadingProgress(100, 'Complete!');
+    setTimeout(() => {
+        loadingScreen.classList.add('hidden');
+        // Remove from DOM after animation
+        setTimeout(() => {
+            loadingScreen.remove();
+        }, 800);
+    }, 500);
+}
+
 // Initialize everything
-function init() {
-    // Initialize scene
-    initScene();
+async function init() {
+    try {
+        updateLoadingProgress(10, 'Initializing scene...');
 
-    // Initialize interactions (mouse, touch, click)
-    initInteractions();
+        // Initialize scene
+        initScene();
+        updateLoadingProgress(40, 'Creating planets...');
 
-    // Initialize preview system
-    initPreviewSystem();
+        // Small delay to let scene render
+        await new Promise(resolve => setTimeout(resolve, 300));
+        updateLoadingProgress(60, 'Setting up interactions...');
 
-    // Start animation loop
-    animate(0);
+        // Initialize interactions (mouse, touch, click)
+        initInteractions();
+        updateLoadingProgress(80, 'Finalizing...');
 
-    // Log ready
-    console.log('Max\'s Solar System initialized');
+        // Initialize preview system
+        initPreviewSystem();
+        updateLoadingProgress(90, 'Ready!');
+
+        // Small delay before hiding
+        await new Promise(resolve => setTimeout(resolve, 200));
+
+        // Hide loading screen
+        hideLoadingScreen();
+
+        // Start animation loop
+        animate(0);
+
+        // Log ready
+        console.log('Max\'s Solar System initialized');
+    } catch (error) {
+        console.error('Error initializing solar system:', error);
+        loadingText.textContent = 'Error loading. Please refresh.';
+        loadingText.style.color = '#ff6b6b';
+    }
 }
 
 // Main animation loop
@@ -52,6 +103,9 @@ function animate(currentTime) {
 
     // Update planet positions (orbits)
     updatePlanetPositions(deltaTime);
+
+    // Update preview camera (follows planet if in preview mode)
+    updatePreviewCamera(camera, state);
 
     // Update camera (smooth movement)
     updateCamera(deltaTime);

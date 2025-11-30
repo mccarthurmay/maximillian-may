@@ -37,7 +37,7 @@ export function getCharacterRotation() {
 export function loadCharacter() {
     return new Promise((resolve, reject) => {
         const characterLoader = new GLTFLoader();
-        characterLoader.load('manchot_the_penguin.glb',
+        characterLoader.load('assets/models/penguin.glb',
             function(gltf) {
                 console.log('Penguin character loaded successfully!');
                 characterModel = gltf.scene;

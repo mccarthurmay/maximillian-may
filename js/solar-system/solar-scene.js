@@ -3,6 +3,7 @@
 // ===================================
 
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { planets, sun, stars } from './planets-config.js';
 
 // Scene, camera, renderer
@@ -14,6 +15,7 @@ export let planetMeshes = [];
 export let planetData = [];
 export let orbitLines = [];
 export let starField;
+export let portfolioMoon = null;
 
 // State
 export const state = {
@@ -45,15 +47,24 @@ export function initScene() {
     renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     document.getElementById('solar-canvas').appendChild(renderer.domElement);
 
     // Add lights
     const ambientLight = new THREE.AmbientLight(0xffffff, 0.3);
     scene.add(ambientLight);
 
-    // Point light at sun position
-    const sunLight = new THREE.PointLight(0xfdb813, 2, 100);
+    // Point light at sun position - main light source
+    // Use very high intensity with no decay for consistent illumination
+    const sunLight = new THREE.PointLight(0xfdb813, 15, 0); // Very high intensity, infinite range
     sunLight.position.set(0, 0, 0);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.width = 512;  // Low quality for performance
+    sunLight.shadow.mapSize.height = 512;
+    sunLight.shadow.camera.near = 0.5;
+    sunLight.shadow.camera.far = 200; // Extended to cover all planets
+    sunLight.decay = 0; // No decay - constant brightness
     scene.add(sunLight);
 
     // Create stars
@@ -109,23 +120,21 @@ function createStars() {
 // Create the sun
 function createSun() {
     const geometry = new THREE.SphereGeometry(sun.size, 32, 32);
-    const material = new THREE.MeshStandardMaterial({
-        color: sun.color,
-        emissive: sun.emissive,
-        emissiveIntensity: sun.emissiveIntensity,
-        roughness: 0.5
+    // Use MeshBasicMaterial so sun is always bright (unaffected by lighting)
+    const material = new THREE.MeshBasicMaterial({
+        color: sun.color
     });
 
     sunMesh = new THREE.Mesh(geometry, material);
     sunMesh.name = 'sun';
     scene.add(sunMesh);
 
-    // Add glow effect (larger transparent sphere)
-    const glowGeometry = new THREE.SphereGeometry(sun.size * 1.3, 32, 32);
+    // Add subtle glow effect
+    const glowGeometry = new THREE.SphereGeometry(sun.size * 1.2, 16, 16);
     const glowMaterial = new THREE.MeshBasicMaterial({
         color: sun.color,
         transparent: true,
-        opacity: 0.2,
+        opacity: 0.3,
         side: THREE.BackSide
     });
     const glow = new THREE.Mesh(glowGeometry, glowMaterial);
@@ -135,38 +144,132 @@ function createSun() {
 // Create all planets
 function createPlanets() {
     planets.forEach((planetConfig, index) => {
-        // Create planet mesh
-        const geometry = new THREE.SphereGeometry(planetConfig.size, 32, 32);
-        const material = new THREE.MeshStandardMaterial({
-            color: planetConfig.color,
-            roughness: 0.7,
-            metalness: 0.3
-        });
-
-        const planet = new THREE.Mesh(geometry, material);
-        planet.name = planetConfig.id;
-        planet.userData = planetConfig;
-
         // Initial position on orbit
         const angle = (index / planets.length) * Math.PI * 2;
-        planet.position.x = Math.cos(angle) * planetConfig.orbitRadius;
-        planet.position.z = Math.sin(angle) * planetConfig.orbitRadius;
-        planet.position.y = 0;
 
-        scene.add(planet);
-        planetMeshes.push(planet);
-
-        // Store planet data for animation
-        planetData.push({
-            mesh: planet,
-            config: planetConfig,
-            angle: angle,
-            originalScale: planetConfig.size
-        });
+        // Special handling for portfolio planet - load 3D model
+        if (planetConfig.id === 'portfolio') {
+            createPortfolioPlanet(planetConfig, angle, index);
+        } else {
+            // Create standard sphere planet
+            createStandardPlanet(planetConfig, angle, index);
+        }
 
         // Create orbit ring
         createOrbitRing(planetConfig.orbitRadius);
     });
+}
+
+// Create standard sphere planet
+function createStandardPlanet(planetConfig, angle, index) {
+    const geometry = new THREE.SphereGeometry(planetConfig.size, 32, 32);
+    const material = new THREE.MeshStandardMaterial({
+        color: planetConfig.color,
+        roughness: 0.7,
+        metalness: 0.3
+    });
+
+    const planet = new THREE.Mesh(geometry, material);
+    planet.name = planetConfig.id;
+    planet.userData = planetConfig;
+
+    planet.position.x = Math.cos(angle) * planetConfig.orbitRadius;
+    planet.position.z = Math.sin(angle) * planetConfig.orbitRadius;
+    planet.position.y = 0;
+
+    scene.add(planet);
+    planetMeshes.push(planet);
+
+    // Store planet data for animation
+    planetData.push({
+        mesh: planet,
+        config: planetConfig,
+        angle: angle,
+        originalScale: planetConfig.size
+    });
+}
+
+// Create portfolio planet from 3D model
+function createPortfolioPlanet(planetConfig, angle, index) {
+    const loader = new GLTFLoader();
+    loader.load(
+        'assets/models/portfolio-lq.glb',
+        function(gltf) {
+            const planet = gltf.scene;
+            planet.name = planetConfig.id;
+            planet.userData = planetConfig;
+
+            // Scale to match planet size
+            const box = new THREE.Box3().setFromObject(planet);
+            const size = box.getSize(new THREE.Vector3());
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const scale = (planetConfig.size * 2) / maxDim;
+            planet.scale.setScalar(scale);
+
+            // Center the model
+            const center = box.getCenter(new THREE.Vector3());
+            const centerOffset = {
+                x: -center.x * scale,
+                y: -center.y * scale,
+                z: -center.z * scale
+            };
+
+            planet.position.set(
+                Math.cos(angle) * planetConfig.orbitRadius + centerOffset.x,
+                centerOffset.y,
+                Math.sin(angle) * planetConfig.orbitRadius + centerOffset.z
+            );
+
+            // Enable shadows
+            planet.traverse((child) => {
+                if (child.isMesh) {
+                    child.castShadow = true;
+                    child.receiveShadow = true;
+                }
+            });
+
+            scene.add(planet);
+            planetMeshes.push(planet);
+
+            // Add label for portfolio planet (async loaded)
+            import('./solar-interactions.js').then(module => {
+                module.addPlanetLabel(planet);
+            });
+
+            // Create mini moon for portfolio planet
+            const moonGeometry = new THREE.SphereGeometry(planetConfig.size * 0.3, 16, 16);
+            const moonMaterial = new THREE.MeshStandardMaterial({
+                color: 0xcccccc,
+                roughness: 0.9,
+                metalness: 0.1
+            });
+            portfolioMoon = new THREE.Mesh(moonGeometry, moonMaterial);
+            portfolioMoon.castShadow = true;
+            portfolioMoon.receiveShadow = true;
+            scene.add(portfolioMoon);
+
+            // Store planet data for animation (with center offset)
+            planetData.push({
+                mesh: planet,
+                config: planetConfig,
+                angle: angle,
+                originalScale: scale,
+                centerOffset: centerOffset,
+                hasMoon: true,
+                moonAngle: 0
+            });
+
+            console.log('Portfolio planet loaded successfully with moon');
+        },
+        function(progress) {
+            console.log('Loading portfolio planet:', (progress.loaded / progress.total * 100).toFixed(2) + '%');
+        },
+        function(error) {
+            console.error('Error loading portfolio planet:', error);
+            // Fallback to standard sphere
+            createStandardPlanet(planetConfig, angle, index);
+        }
+    );
 }
 
 // Create orbit ring for a planet
@@ -200,9 +303,40 @@ export function updatePlanetPositions(deltaTime) {
         // Update angle based on orbit speed
         data.angle += data.config.orbitSpeed * deltaTime * 0.1;
 
-        // Update position
-        data.mesh.position.x = Math.cos(data.angle) * data.config.orbitRadius;
-        data.mesh.position.z = Math.sin(data.angle) * data.config.orbitRadius;
+        // Update position based on orbit
+        const orbitX = Math.cos(data.angle) * data.config.orbitRadius;
+        const orbitZ = Math.sin(data.angle) * data.config.orbitRadius;
+
+        // For portfolio planet (3D model), maintain the center offset
+        if (data.config.id === 'portfolio' && data.centerOffset) {
+            data.mesh.position.x = orbitX + data.centerOffset.x;
+            data.mesh.position.y = data.centerOffset.y;
+            data.mesh.position.z = orbitZ + data.centerOffset.z;
+
+            // Update moon orbit around portfolio planet (realistic circular orbit)
+            if (data.hasMoon && portfolioMoon) {
+                data.moonAngle += 0.015; // Slightly slower, more realistic
+                const moonDistance = data.config.size * 1.5; // Reduced orbit - closer to planet
+                const orbitTilt = 0.15; // Realistic orbital tilt (about 5 degrees)
+
+                // Tilted circular orbit around planet
+                const moonX = Math.cos(data.moonAngle) * moonDistance;
+                const moonZ = Math.sin(data.moonAngle) * moonDistance * Math.cos(orbitTilt);
+                const moonY = Math.sin(data.moonAngle) * moonDistance * Math.sin(orbitTilt);
+
+                portfolioMoon.position.x = data.mesh.position.x + moonX;
+                portfolioMoon.position.z = data.mesh.position.z + moonZ;
+                portfolioMoon.position.y = data.mesh.position.y + moonY;
+
+                // Moon rotation (tidally locked - same face toward planet)
+                portfolioMoon.rotation.y = data.moonAngle + Math.PI;
+            }
+        } else {
+            // Standard sphere planets
+            data.mesh.position.x = orbitX;
+            data.mesh.position.z = orbitZ;
+            data.mesh.position.y = 0;
+        }
 
         // Slow rotation
         data.mesh.rotation.y += 0.005;
@@ -216,9 +350,12 @@ export function updatePlanetPositions(deltaTime) {
 
 // Smooth camera movement
 export function updateCamera(deltaTime) {
-    // Smooth lerp to target position
-    camera.position.lerp(state.cameraTarget, 0.05);
-    camera.lookAt(0, 0, 0);
+    // Only update camera if not in preview mode (preview handles its own camera)
+    if (state.mode !== 'preview') {
+        // Smooth lerp to target position
+        camera.position.lerp(state.cameraTarget, 0.05);
+        camera.lookAt(0, 0, 0);
+    }
 
     // Make starfield follow camera so it appears fixed
     if (starField) {

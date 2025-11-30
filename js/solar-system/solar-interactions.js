@@ -44,13 +44,29 @@ export function initInteractions() {
 // Create HTML labels for planets
 function createPlanetLabels() {
     planetMeshes.forEach(planet => {
+        // Check if label already exists
+        if (!planetLabels.find(l => l.planet === planet)) {
+            const label = document.createElement('div');
+            label.className = 'planet-label';
+            label.textContent = planet.userData.name;
+            label.id = `label-${planet.userData.id}`;
+            document.getElementById('solar-canvas').appendChild(label);
+            planetLabels.push({ planet, element: label });
+        }
+    });
+}
+
+// Add a single planet label (for async loaded planets)
+export function addPlanetLabel(planet) {
+    if (!planetLabels.find(l => l.planet === planet)) {
         const label = document.createElement('div');
         label.className = 'planet-label';
         label.textContent = planet.userData.name;
         label.id = `label-${planet.userData.id}`;
         document.getElementById('solar-canvas').appendChild(label);
         planetLabels.push({ planet, element: label });
-    });
+        console.log('Added label for', planet.userData.name);
+    }
 }
 
 // Update planet label positions
@@ -120,10 +136,29 @@ function onMouseClick(event) {
 
     if (state.mode === 'overview') {
         raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObjects(planetMeshes);
+
+        // Build objects list (same as hover detection)
+        const allObjects = [];
+        planetMeshes.forEach(planet => {
+            if (planet.userData.id === 'portfolio') {
+                planet.traverse(child => {
+                    if (child.isMesh) {
+                        allObjects.push(child);
+                    }
+                });
+            } else {
+                allObjects.push(planet);
+            }
+        });
+
+        const intersects = raycaster.intersectObjects(allObjects, true);
 
         if (intersects.length > 0) {
-            const planet = intersects[0].object;
+            // Find the parent planet mesh
+            let planet = intersects[0].object;
+            while (planet.parent && !planet.userData.id) {
+                planet = planet.parent;
+            }
             onPlanetClick(planet);
         }
     }
@@ -200,10 +235,29 @@ function onTouchEnd(event) {
     // Check for planet click
     if (state.mode === 'overview') {
         raycaster.setFromCamera(mouse, camera);
-        const intersects = raycaster.intersectObjects(planetMeshes);
+
+        // Build objects list (same as click detection)
+        const allObjects = [];
+        planetMeshes.forEach(planet => {
+            if (planet.userData.id === 'portfolio') {
+                planet.traverse(child => {
+                    if (child.isMesh) {
+                        allObjects.push(child);
+                    }
+                });
+            } else {
+                allObjects.push(planet);
+            }
+        });
+
+        const intersects = raycaster.intersectObjects(allObjects, true);
 
         if (intersects.length > 0) {
-            const planet = intersects[0].object;
+            // Find the parent planet mesh
+            let planet = intersects[0].object;
+            while (planet.parent && !planet.userData.id) {
+                planet = planet.parent;
+            }
             onPlanetClick(planet);
         }
     }
@@ -228,24 +282,42 @@ function onWheel(event) {
 // Check which planet is being hovered
 function checkPlanetHover() {
     raycaster.setFromCamera(mouse, camera);
-    const intersects = raycaster.intersectObjects(planetMeshes);
+
+    // For portfolio planet, we need to raycast against all children meshes
+    const allObjects = [];
+    planetMeshes.forEach(planet => {
+        if (planet.userData.id === 'portfolio') {
+            // Add all children meshes of the 3D model
+            planet.traverse(child => {
+                if (child.isMesh) {
+                    allObjects.push(child);
+                }
+            });
+        } else {
+            allObjects.push(planet);
+        }
+    });
+
+    const intersects = raycaster.intersectObjects(allObjects, true);
 
     if (intersects.length > 0) {
-        const planet = intersects[0].object;
+        // Find the parent planet mesh
+        let planet = intersects[0].object;
+        while (planet.parent && !planet.userData.id) {
+            planet = planet.parent;
+        }
+
         const planetId = planet.userData.id;
 
         if (state.hoveredPlanet !== planetId) {
             // Clear previous hover
             if (state.hoveredPlanet) {
-                const prevPlanet = planetMeshes.find(p => p.userData.id === state.hoveredPlanet);
-                if (prevPlanet) {
-                    prevPlanet.scale.setScalar(1.0);
-                }
+                clearPlanetHover(state.hoveredPlanet);
             }
 
             // Set new hover
             state.hoveredPlanet = planetId;
-            planet.scale.setScalar(1.15);
+            applyPlanetHover(planet, planetId);
 
             // Change cursor
             document.querySelector('#solar-canvas canvas').style.cursor = 'pointer';
@@ -253,14 +325,42 @@ function checkPlanetHover() {
     } else {
         // No hover
         if (state.hoveredPlanet) {
-            const prevPlanet = planetMeshes.find(p => p.userData.id === state.hoveredPlanet);
-            if (prevPlanet) {
-                prevPlanet.scale.setScalar(1.0);
-            }
+            clearPlanetHover(state.hoveredPlanet);
             state.hoveredPlanet = null;
 
             // Reset cursor
             document.querySelector('#solar-canvas canvas').style.cursor = 'grab';
+        }
+    }
+}
+
+// Apply hover effect to planet
+function applyPlanetHover(planet, planetId) {
+    const planetConfig = planetData.find(p => p.config.id === planetId);
+
+    if (planetId === 'portfolio') {
+        // For portfolio planet, scale based on original scale
+        if (planetConfig) {
+            planet.scale.setScalar(planetConfig.originalScale * 1.15);
+        }
+    } else {
+        // Standard sphere planets
+        planet.scale.setScalar(1.15);
+    }
+}
+
+// Clear hover effect from planet
+function clearPlanetHover(planetId) {
+    const planet = planetMeshes.find(p => p.userData.id === planetId);
+    const planetConfig = planetData.find(p => p.config.id === planetId);
+
+    if (planet) {
+        if (planetId === 'portfolio' && planetConfig) {
+            // Restore original scale for portfolio planet
+            planet.scale.setScalar(planetConfig.originalScale);
+        } else {
+            // Standard sphere planets
+            planet.scale.setScalar(1.0);
         }
     }
 }
@@ -270,26 +370,27 @@ function onPlanetClick(planet) {
     console.log('Clicked planet:', planet.userData.name);
 
     state.selectedPlanet = planet.userData;
-    state.mode = 'transitioning';
+    state.mode = 'preview';
 
-    // Zoom camera to planet
-    const planetPos = planet.position.clone();
-    const offset = new THREE.Vector3(0, 3, 8);
-    state.cameraTarget.copy(planetPos).add(offset);
+    // Immediately show preview - camera will follow planet
+    showPlanetPreview(planet.userData, planet);
 
-    // Fade other planets
+    // Dim other planets
     planetMeshes.forEach(p => {
         if (p !== planet) {
-            p.material.opacity = 0.2;
-            p.material.transparent = true;
+            if (p.userData.id === 'portfolio') {
+                p.traverse(child => {
+                    if (child.isMesh && child.material) {
+                        child.material.opacity = 0.2;
+                        child.material.transparent = true;
+                    }
+                });
+            } else {
+                p.material.opacity = 0.2;
+                p.material.transparent = true;
+            }
         }
     });
-
-    // After camera movement, show preview
-    setTimeout(() => {
-        state.mode = 'preview';
-        showPlanetPreview(planet.userData);
-    }, 1000);
 }
 
 // Reset to overview mode
@@ -302,10 +403,28 @@ export function resetToOverview() {
     state.cameraTarget.set(0, 28, 15);
     cameraAngle = 0;
 
-    // Reset all planet materials
+    // Reset all planet materials and scales
     planetMeshes.forEach(p => {
-        p.material.opacity = 1.0;
-        p.material.transparent = false;
-        p.scale.setScalar(1.0);
+        // Reset material
+        if (p.userData.id === 'portfolio') {
+            // Portfolio planet uses GLB materials, just reset opacity
+            p.traverse(child => {
+                if (child.isMesh && child.material) {
+                    child.material.opacity = 1.0;
+                    child.material.transparent = false;
+                }
+            });
+
+            // Reset to original scale
+            const planetConfig = planetData.find(pd => pd.config.id === 'portfolio');
+            if (planetConfig) {
+                p.scale.setScalar(planetConfig.originalScale);
+            }
+        } else {
+            // Standard sphere planets
+            p.material.opacity = 1.0;
+            p.material.transparent = false;
+            p.scale.setScalar(1.0);
+        }
     });
 }

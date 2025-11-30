@@ -27,7 +27,7 @@ export let introAnimationAction = null;
 export function loadWorld() {
     return new Promise((resolve, reject) => {
         const planetLoader = new GLTFLoader();
-        planetLoader.load('world-only.glb',
+        planetLoader.load('assets/models/portfolio-hq.glb',
             // onLoad callback
             function(gltf) {
                 const planet = gltf.scene;
@@ -140,7 +140,7 @@ export function loadWorld() {
 
                 // Load intro animation from GLB
                 if (gltf.animations && gltf.animations.length > 0) {
-                    console.log('Found animations in world-only.glb:', gltf.animations.map(a => a.name));
+                    console.log('Found animations in portfolio-hq.glb:', gltf.animations.map(a => a.name));
 
                     spaceshipMixer = new THREE.AnimationMixer(planetGroup);
 
