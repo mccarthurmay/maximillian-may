@@ -28,9 +28,9 @@
             <h1>About Me</h1>
             <p>Welcome to my photography portfolio. This is still a WIP and my portfolio will be an ever growing thing, so stay tuned.</p>
 
-            <!-- Current Projects Section -->
+            <!-- Future Projects Section -->
             <section class="about-section">
-                <h2>Current Projects</h2>
+                <h2>Future Projects</h2>
                 <div class="projects-list">
                     <div class="project-item">
                         <h3>Oregon</h3>
@@ -47,7 +47,7 @@
                 <!-- Section 1: Quick Contact Form -->
                 <div class="contact-form-section">
                     <h3>Quick Contact</h3>
-                    <form class="contact-form" action="#" method="POST">
+                    <form id="contact-form" class="contact-form">
                         <div class="form-group">
                             <label for="name">Name</label>
                             <input type="text" id="name" name="name" required>
@@ -67,14 +67,15 @@
                             <label for="reason">Reason for contacting (Optional)</label>
                             <select id="reason" name="reason">
                                 <option value="">Select a reason...</option>
-                                <option value="photography">Photography Inquiry</option>
-                                <option value="collaboration">Collaboration</option>
-                                <option value="general">General Question</option>
-                                <option value="other">Other</option>
+                                <option value="Photography Inquiry">Photography Inquiry</option>
+                                <option value="Collaboration">Collaboration</option>
+                                <option value="General Question">General Question</option>
+                                <option value="Other">Other</option>
                             </select>
                         </div>
 
                         <button type="submit" class="submit-button">Submit</button>
+                        <div id="form-message" class="form-message"></div>
                     </form>
                 </div>
 
@@ -89,5 +90,6 @@
             </section>
         </div>
     </div>
+    <script src="js/contact-form.js"></script>
 </body>
 </html>
