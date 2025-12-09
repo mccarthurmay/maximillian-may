@@ -5,7 +5,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
-import { planetGroup, characterGroup, camera } from './scene.js';
+import { scene, planetGroup, characterGroup, camera } from './scene.js';
 import { signData, SIGN_PROXIMITY_NORMAL, SIGN_PROXIMITY_BIRDS_EYE } from './config.js';
 import { buildCollisionMeshes } from './physics.js';
 import { updateLoadingProgress, showLoadingError, showIntroScreen } from './ui.js';
@@ -17,11 +17,13 @@ export const signLabels = [];
 export let spawnCube = null;
 
 // Spaceship and explosion references for intro animation
-export let spaceshipMesh = null;
+export let spaceshipMesh = null; // Animated spaceship from portfolio-animation.glb
+export let stationaryShipMesh = null; // Static wreckage from portfolio-hq.glb
 export let explosionMesh = null;
 export let introCameraMesh = null;
 export let spaceshipMixer = null;
 export let introAnimationAction = null;
+export let animationScene = null; // The animation scene that needs to be removed after intro
 
 // Load the Blender world model
 export function loadWorld() {
@@ -49,14 +51,14 @@ export function loadWorld() {
                         });
                     }
 
-                    // Check for spaceship parent object (not just meshes)
-                    if (name === 'spaceship' && !spaceshipMesh) {
-                        spaceshipMesh = child;
-                        spaceshipMesh.visible = true; // Make visible for testing
-                        console.log(`>>> SPACESHIP OBJECT FOUND: "${child.name}" at position:`, child.position);
+                    // Check for stationary-ship (the crashed wreckage, not the animated one)
+                    if (name === 'stationary-ship' && !stationaryShipMesh) {
+                        stationaryShipMesh = child;
+                        stationaryShipMesh.visible = false; // Initially hidden until after intro animation
+                        console.log(`>>> STATIONARY-SHIP OBJECT FOUND: "${child.name}" at position:`, child.position);
 
-                        // Debug: Log all children of spaceship
-                        console.log('>>> SPACESHIP CHILDREN:');
+                        // Debug: Log all children of stationary ship
+                        console.log('>>> STATIONARY-SHIP CHILDREN:');
                         child.children.forEach((spChild, index) => {
                             console.log(`  [${index}] "${spChild.name}" (type: ${spChild.type}, isCamera: ${spChild.isCamera})`);
                         });
@@ -138,52 +140,104 @@ export function loadWorld() {
                 planetGroup.add(planet);
                 console.log('Blender world model loaded successfully');
 
-                // Load intro animation from GLB
-                if (gltf.animations && gltf.animations.length > 0) {
-                    console.log('Found animations in portfolio-hq.glb:', gltf.animations.map(a => a.name));
+                // Load intro animations AND spaceship mesh from separate animation file
+                // Wrap in a promise so we can wait for it to complete
+                const animationPromise = new Promise((animResolve, animReject) => {
+                    const animationLoader = new GLTFLoader();
+                    animationLoader.load('assets/models/portfolio-animation.glb',
+                        function(animGltf) {
+                            // Add the ENTIRE scene from portfolio-animation.glb to the main scene (NOT planetGroup)
+                            // This preserves the hierarchy and prevents it from being rotated with the planet
+                            animationScene = animGltf.scene;
+                            scene.add(animationScene);
+                            console.log('>>> Added animation scene to main scene (not planetGroup)');
 
-                    spaceshipMixer = new THREE.AnimationMixer(planetGroup);
+                            // Now find references to the objects we need
+                            animationScene.traverse((child) => {
+                                const animName = child.name.toLowerCase();
 
-                    // Find individual actions by name
-                    const spaceshipAnim = gltf.animations.find(a => a.name.toLowerCase() === "spaceshipaction");
-                    const cameraAnim = gltf.animations.find(a => a.name.toLowerCase() === "cameraaction");
-                    const explosionAnim = gltf.animations.find(a => a.name.toLowerCase() === "explosionaction");
+                                // Find the spaceship object in the animation file
+                                if (animName === 'spaceship' && !spaceshipMesh) {
+                                    spaceshipMesh = child;
+                                    spaceshipMesh.visible = false; // Initially hidden
+                                    console.log(`>>> ANIMATED SPACESHIP FOUND in animation file at position:`, spaceshipMesh.position);
+                                }
 
-                    if (spaceshipAnim) {
-                        window.spaceshipAction = spaceshipMixer.clipAction(spaceshipAnim);
-                        window.spaceshipAction.setLoop(THREE.LoopOnce);
-                        window.spaceshipAction.clampWhenFinished = true;
-                        console.log(`✓ Loaded SpaceshipAction (${spaceshipAnim.tracks.length} tracks)`);
-                    }
+                                // Find explosion in the animation file
+                                if (animName === 'explosion' && !explosionMesh) {
+                                    explosionMesh = child;
+                                    explosionMesh.visible = false;
+                                    console.log(`>>> EXPLOSION FOUND in animation file at position:`, explosionMesh.position);
+                                }
 
-                    if (cameraAnim) {
-                        window.cameraAction = spaceshipMixer.clipAction(cameraAnim);
-                        window.cameraAction.setLoop(THREE.LoopOnce);
-                        window.cameraAction.clampWhenFinished = true;
-                        console.log(`✓ Loaded CameraAction (${cameraAnim.tracks.length} tracks)`);
-                    }
+                                // Find intro camera in animation file
+                                if ((animName === 'introcamera' || animName === 'camera') && !introCameraMesh && child.isCamera) {
+                                    introCameraMesh = child;
+                                    console.log(`>>> INTRO CAMERA FOUND in animation file`);
+                                }
+                            });
 
-                    if (explosionAnim) {
-                        window.explosionAction = spaceshipMixer.clipAction(explosionAnim);
-                        window.explosionAction.setLoop(THREE.LoopOnce);
-                        window.explosionAction.clampWhenFinished = true;
-                        console.log(`✓ Loaded ExplosionAction (${explosionAnim.tracks.length} tracks)`);
-                    }
-                }
+                            if (animGltf.animations && animGltf.animations.length > 0) {
+                                console.log('Found animations in portfolio-animation.glb:', animGltf.animations.map(a => a.name));
 
+                                // Create mixer with the animation scene (not planetGroup)
+                                // This ensures the animation targets are resolved correctly
+                                spaceshipMixer = new THREE.AnimationMixer(animationScene);
 
+                                // Find individual actions by name
+                                const spaceshipAnim = animGltf.animations.find(a => a.name.toLowerCase() === "spaceshipaction");
+                                const cameraAnim = animGltf.animations.find(a => a.name.toLowerCase() === "cameraaction");
+                                const explosionAnim = animGltf.animations.find(a => a.name.toLowerCase() === "explosionaction");
 
-                // Rotate planet so spawn cube is at character position
-                rotateToSpawn();
+                                if (spaceshipAnim) {
+                                    window.spaceshipAction = spaceshipMixer.clipAction(spaceshipAnim);
+                                    window.spaceshipAction.setLoop(THREE.LoopOnce);
+                                    window.spaceshipAction.clampWhenFinished = true;
+                                    console.log(`✓ Loaded SpaceshipAction (${spaceshipAnim.tracks.length} tracks)`);
+                                }
 
-                // Build collision meshes array for physics AFTER rotation
-                // This ensures the spatial grid has the correct post-rotation positions
-                buildCollisionMeshes();
+                                if (cameraAnim) {
+                                    window.cameraAction = spaceshipMixer.clipAction(cameraAnim);
+                                    window.cameraAction.setLoop(THREE.LoopOnce);
+                                    window.cameraAction.clampWhenFinished = true;
+                                    console.log(`✓ Loaded CameraAction (${cameraAnim.tracks.length} tracks)`);
+                                }
 
-                // Hide loading screen and show intro screen
-                showIntroScreen();
+                                if (explosionAnim) {
+                                    window.explosionAction = spaceshipMixer.clipAction(explosionAnim);
+                                    window.explosionAction.setLoop(THREE.LoopOnce);
+                                    window.explosionAction.clampWhenFinished = true;
+                                    console.log(`✓ Loaded ExplosionAction (${explosionAnim.tracks.length} tracks)`);
+                                }
 
-                resolve();
+                                animResolve(); // Animation loading complete
+                            } else {
+                                console.warn('No animations found in portfolio-animation.glb');
+                                animResolve(); // Still resolve even if no animations found
+                            }
+                        },
+                        undefined,
+                        function(error) {
+                            console.error('Error loading animation file:', error);
+                            animResolve(); // Resolve anyway so world loading doesn't hang
+                        }
+                    );
+                });
+
+                // Wait for animations to load before completing world load
+                animationPromise.then(() => {
+                    // Rotate planet so spawn cube is at character position
+                    rotateToSpawn();
+
+                    // Build collision meshes array for physics AFTER rotation
+                    // This ensures the spatial grid has the correct post-rotation positions
+                    buildCollisionMeshes();
+
+                    // Hide loading screen and show intro screen
+                    showIntroScreen();
+
+                    resolve();
+                });
             },
             // onProgress callback
             function(xhr) {

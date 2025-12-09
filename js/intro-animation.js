@@ -6,14 +6,16 @@ import { getSunDirection, sun, sunGlow, sunGlow2, moon, moonGlow, ambientLight, 
 import { signLabels } from './world.js';
 
 export class IntroAnimationManager {
-    constructor(camera, scene, spaceshipMesh, explosionMesh, introCameraMesh, mixer, actions, renderingOptimizer) {
+    constructor(camera, scene, spaceshipMesh, explosionMesh, introCameraMesh, mixer, actions, renderingOptimizer, stationaryShipMesh, animScene) {
         this.gameplayCamera = camera;
         this.scene = scene;
-        this.spaceshipMesh = spaceshipMesh;
+        this.spaceshipMesh = spaceshipMesh; // Animated spaceship
+        this.stationaryShipMesh = stationaryShipMesh; // Static wreckage
         this.explosionMesh = explosionMesh;
         this.introCameraMesh = introCameraMesh;
         this.mixer = mixer;
         this.renderingOptimizer = renderingOptimizer;
+        this.animScene = animScene; // The animation scene to remove after intro
 
         // Actions: { spaceship, camera, explosion }
         this.actions = actions;
@@ -339,14 +341,16 @@ export class IntroAnimationManager {
         this.isPlaying = false;
         console.log('Intro animation complete');
 
-        // Hide spaceship and explosion (they're still in planetGroup)
-        if (this.spaceshipMesh) {
-            this.spaceshipMesh.visible = false;
-            console.log('Spaceship hidden');
+        // Remove the entire animation scene from the main scene
+        if (this.animScene) {
+            this.scene.remove(this.animScene);
+            console.log('Animation scene removed from main scene');
         }
-        if (this.explosionMesh) {
-            this.explosionMesh.visible = false;
-            console.log('Explosion hidden');
+
+        // Show static wreckage on the planet
+        if (this.stationaryShipMesh) {
+            this.stationaryShipMesh.visible = true;
+            console.log('Stationary ship wreckage now visible');
         }
 
         if (characterGroup) characterGroup.visible = true;

@@ -175,6 +175,14 @@ export function hideIntroScreen() {
     } else {
         // No intro animation - go straight to gameplay
         introActive = false;
+
+        // Make stationary ship visible since intro animation won't run
+        import('./world.js').then(module => {
+            if (module.stationaryShipMesh) {
+                module.stationaryShipMesh.visible = true;
+                console.log('Stationary ship wreckage visible (no intro animation)');
+            }
+        });
     }
 
     // Fade out intro screen

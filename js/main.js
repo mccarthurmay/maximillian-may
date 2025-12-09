@@ -13,8 +13,9 @@ import { PerformanceProfiler } from './profiler.js';
 import { RenderingOptimizer } from './rendering-optimizer.js';
 import { ShadowOptimizer } from './shadow-optimizer.js';
 import { setupSpotifyPlayer, setupTimeControls, setupEscapeMenu, updateCoordinatesDisplay, introActive, introAnimating, completeIntroAnimation } from './ui.js';
-import { loadWorld, updateSignLabels, spaceshipMesh, explosionMesh, introCameraMesh, spaceshipMixer, introAnimationAction } from './world.js';
+import { loadWorld, updateSignLabels, spaceshipMesh, stationaryShipMesh, explosionMesh, introCameraMesh, spaceshipMixer, introAnimationAction, animationScene } from './world.js';
 import { setupControls, handleMovement, updateCamera, detachedCamera, isSprinting } from './controls.js';
+import { updateProximityCheck } from './radial-menu.js';
 import { IntroAnimationManager } from './intro-animation.js';
 import { FIXED_TIMESTEP, CAMERA_HEIGHT, CAMERA_DISTANCE_IDLE, SPAWN_HEIGHT } from './config.js';
 
@@ -72,18 +73,22 @@ async function init() {
                     camera: window.cameraAction,
                     explosion: window.explosionAction
                 },
-                renderingOptimizer
+                renderingOptimizer,
+                stationaryShipMesh, // Pass the static wreckage mesh
+                animationScene // Pass the animation scene to remove after intro
             );
             window.introAnimationManager = introAnimationManager;
             console.log('✓ IntroAnimationManager created successfully');
         } else {
             console.error('Failed to create IntroAnimationManager. Missing:', {
                 spaceshipMesh: !!spaceshipMesh,
+                stationaryShipMesh: !!stationaryShipMesh,
                 explosionMesh: !!explosionMesh,
                 spaceshipMixer: !!spaceshipMixer,
                 spaceshipAction: !!window.spaceshipAction,
                 cameraAction: !!window.cameraAction,
-                explosionAction: !!window.explosionAction
+                explosionAction: !!window.explosionAction,
+                animationScene: !!animationScene
             });
         }
     } catch (error) {
@@ -182,6 +187,9 @@ function animate() {
         t = profiler.startMeasure('signLabels');
         updateSignLabels(detachedCamera);
         profiler.endMeasure('signLabels', t);
+
+        // === RADIAL MENU PROXIMITY ===
+        updateProximityCheck();
     }
 
     // === FRUSTUM CULLING ===

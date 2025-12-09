@@ -2,10 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Maximillian May - Canvas</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Maximillian May - Portfolio</title>
     <link rel="stylesheet" href="css/photography.css">
 </head>
 <body>
@@ -13,9 +11,9 @@
     <nav id="main-nav">
         <div id="nav-name">MAXIMILLIAN MAY</div>
         <div id="nav-links">
-            <a href="portfolio.html" class="nav-link">Portfolio</a>
+            <a href="photography.html" class="nav-link active">Portfolio</a>
             <a href="rugby.html" class="nav-link">Rugby</a>
-            <a href="photography.html" class="nav-link active">Canvas</a>
+            <a href="canvas.html" class="nav-link">Canvas</a>
             <a href="about.html" class="nav-link">About</a>
             <a href="https://www.instagram.com/max_mayy/" target="_blank" id="nav-instagram" class="nav-link">
                 <img src="assets/images/instagram.png" alt="Instagram" class="instagram-icon">
@@ -23,12 +21,9 @@
         </div>
     </nav>
 
-    <!-- Canvas View -->
-    <div id="canvas-view" class="view-container active">
-        <div id="photo-canvas-container"></div>
-
-        <!-- Canvas-specific UI -->
-        <div id="photo-counter" class="ui-element">0 photos</div>
+    <!-- Portfolio View -->
+    <div id="portfolio-view" class="view-container active" style="display: block; overflow-y: auto;">
+        <div id="portfolio-grid"></div>
     </div>
 
     <!-- Photo lightbox -->
@@ -38,17 +33,7 @@
         <button id="lightbox-close">×</button>
     </div>
 
-    <!-- Three.js -->
-    <script type="importmap">
-    {
-        "imports": {
-            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
-            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
-        }
-    }
-    </script>
-
     <!-- Main entry -->
-    <script type="module" src="js/photography/photo-main.js"></script>
+    <script type="module" src="js/photography/photo-portfolio-main.js"></script>
 </body>
 </html>

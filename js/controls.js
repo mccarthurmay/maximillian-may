@@ -7,6 +7,8 @@ import { camera, characterGroup, planetGroup } from './scene.js';
 import { keys, hideIntroScreen, introActive, introAnimating, completeIntroAnimation } from './ui.js';
 import { physics, checkForwardCollision } from './physics.js';
 import { animationState, rotateCharacter, jumpAction, setCharacterRotation, getCharacterRotation } from './character.js';
+import { signLabels } from './world.js';
+import { openRadialMenu, closeRadialMenu, navigateMenu, executeSelectedItem, isRadialMenuOpen, updateProximityCheck } from './radial-menu.js';
 import {
     CAMERA_HEIGHT,
     CAMERA_DISTANCE_IDLE,
@@ -124,6 +126,12 @@ export function setupControls(performanceManager) {
             return;
         }
 
+        // ESC to close radial menu if open
+        if (e.key === 'Escape' && isRadialMenuOpen()) {
+            closeRadialMenu();
+            return;
+        }
+
         // Toggle escape menu (only during gameplay, not during intro animation)
         if (e.key === 'Escape' && !introActive && !introAnimating) {
             const menu = document.getElementById('escape-menu');
@@ -145,9 +153,167 @@ export function setupControls(performanceManager) {
             toggleBirdEyeView();
         }
 
+        // Open radial menu with 'E' key
+        if (key === 'e' && !introActive && !isRadialMenuOpen()) {
+            openRadialMenu();
+            return;
+        }
+
+        // Navigate radial menu with arrow keys
+        if (isRadialMenuOpen() && (e.key === 'ArrowLeft' || e.key === 'ArrowUp')) {
+            navigateMenu('prev');
+            return;
+        }
+        if (isRadialMenuOpen() && (e.key === 'ArrowRight' || e.key === 'ArrowDown')) {
+            navigateMenu('next');
+            return;
+        }
+
+        // Execute selected menu item with Enter
+        if (isRadialMenuOpen() && e.key === 'Enter') {
+            executeSelectedItem();
+            return;
+        }
+
         // Reset to spawn with 'X' key
         if (key === 'x' && !introActive) {
             resetToSpawn();
+        }
+
+        // Old individual key handlers (kept as fallback, but radial menu is preferred)
+        // Teleport to spawn with 'H' key if near sign1 or signhome
+        if (key === 'h' && !introActive && !isRadialMenuOpen()) {
+            // Find sign1 or signhome in signLabels
+            const homeSign = signLabels.find(sign =>
+                sign.mesh.name.toLowerCase() === 'signhome' ||
+                sign.mesh.name.toLowerCase() === 'sign1'
+            );
+            if (homeSign) {
+                // Get current world position of the sign
+                const signWorldPos = new THREE.Vector3();
+                homeSign.mesh.getWorldPosition(signWorldPos);
+
+                // Calculate distance from camera to sign
+                const distance = camera.position.distanceTo(signWorldPos);
+
+                // Check if within proximity (using normal proximity radius)
+                if (distance < 3.0) {
+                    resetToSpawn();
+                    console.log('Teleported to spawn');
+                }
+            }
+        }
+
+        // Photography world teleport with 'P' key if near signphotography
+        if (key === 'p' && !introActive) {
+            const photoSign = signLabels.find(sign => sign.mesh.name.toLowerCase() === 'signphotography');
+            if (photoSign) {
+                const signWorldPos = new THREE.Vector3();
+                photoSign.mesh.getWorldPosition(signWorldPos);
+                const distance = camera.position.distanceTo(signWorldPos);
+                if (distance < 3.0) {
+                    window.location.href = 'canvas.html';
+                    console.log('Teleporting to photography world');
+                }
+            }
+        }
+
+        // Open photography portfolio with 'O' key if near signphotography
+        if (key === 'o' && !introActive) {
+            const photoSign = signLabels.find(sign => sign.mesh.name.toLowerCase() === 'signphotography');
+            if (photoSign) {
+                const signWorldPos = new THREE.Vector3();
+                photoSign.mesh.getWorldPosition(signWorldPos);
+                const distance = camera.position.distanceTo(signWorldPos);
+                if (distance < 3.0) {
+                    window.open('photography.html', '_blank');
+                    console.log('Opening photography portfolio');
+                }
+            }
+        }
+
+        // Videography world teleport with 'V' key if near signvideography
+        if (key === 'v' && !introActive) {
+            const videoSign = signLabels.find(sign => sign.mesh.name.toLowerCase() === 'signvideography');
+            if (videoSign) {
+                const signWorldPos = new THREE.Vector3();
+                videoSign.mesh.getWorldPosition(signWorldPos);
+                const distance = camera.position.distanceTo(signWorldPos);
+                if (distance < 3.0) {
+                    console.log('Videography world not yet implemented');
+                    // window.location.href = 'videography-world.html'; // When implemented
+                }
+            }
+        }
+
+        // Open Instagram with 'I' key if near signlinks
+        if (key === 'i' && !introActive) {
+            const linksSign = signLabels.find(sign => sign.mesh.name.toLowerCase() === 'signlinks');
+            if (linksSign) {
+                const signWorldPos = new THREE.Vector3();
+                linksSign.mesh.getWorldPosition(signWorldPos);
+                const distance = camera.position.distanceTo(signWorldPos);
+                if (distance < 3.0) {
+                    window.open('https://www.instagram.com/max_mayy/', '_blank');
+                    console.log('Opening Instagram');
+                }
+            }
+        }
+
+        // Open LinkedIn with 'L' key if near signlinks
+        if (key === 'l' && !introActive) {
+            const linksSign = signLabels.find(sign => sign.mesh.name.toLowerCase() === 'signlinks');
+            if (linksSign) {
+                const signWorldPos = new THREE.Vector3();
+                linksSign.mesh.getWorldPosition(signWorldPos);
+                const distance = camera.position.distanceTo(signWorldPos);
+                if (distance < 3.0) {
+                    window.open('https://www.linkedin.com/in/maximillian-may-734823268/', '_blank');
+                    console.log('Opening LinkedIn');
+                }
+            }
+        }
+
+        // Open GitHub with 'G' key if near signlinks
+        if (key === 'g' && !introActive) {
+            const linksSign = signLabels.find(sign => sign.mesh.name.toLowerCase() === 'signlinks');
+            if (linksSign) {
+                const signWorldPos = new THREE.Vector3();
+                linksSign.mesh.getWorldPosition(signWorldPos);
+                const distance = camera.position.distanceTo(signWorldPos);
+                if (distance < 3.0) {
+                    window.open('https://github.com/mccarthurmay', '_blank');
+                    console.log('Opening GitHub');
+                }
+            }
+        }
+
+        // Open CV with 'C' key if near signlinks
+        if (key === 'c' && !introActive) {
+            const linksSign = signLabels.find(sign => sign.mesh.name.toLowerCase() === 'signlinks');
+            if (linksSign) {
+                const signWorldPos = new THREE.Vector3();
+                linksSign.mesh.getWorldPosition(signWorldPos);
+                const distance = camera.position.distanceTo(signWorldPos);
+                if (distance < 3.0) {
+                    console.log('CV not yet available');
+                    // window.open('path/to/cv.pdf', '_blank'); // When CV is added
+                }
+            }
+        }
+
+        // Open rugby photos with 'R' key if near signrugby
+        if (key === 'r' && !introActive) {
+            const rugbySign = signLabels.find(sign => sign.mesh.name.toLowerCase() === 'signrugby');
+            if (rugbySign) {
+                const signWorldPos = new THREE.Vector3();
+                rugbySign.mesh.getWorldPosition(signWorldPos);
+                const distance = camera.position.distanceTo(signWorldPos);
+                if (distance < 3.0) {
+                    window.open('rugby.html', '_blank');
+                    console.log('Opening rugby photos');
+                }
+            }
         }
 
         if (key in keys && !introActive) {

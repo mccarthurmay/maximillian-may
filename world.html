@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Planet Portfolio - Prototype</title>
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+    <div id="info">
+        <strong>Controls:</strong><br>
+        W - Move forward<br>
+        S - Move backward<br>
+        A - Turn left<br>
+        D - Turn right<br>
+        SPACE - Jump<br>
+        F - Bird's Eye View<br>
+        ESC - Settings<br>
+        <br>
+        <span id="camera-mode-text">Walk around the planet!</span>
+    </div>
+
+    <div id="coordinates">
+        Position: (0, 0, 0)
+    </div>
+
+    <div id="quality-indicator">
+        Quality: Auto (Ultra)
+    </div>
+
+    <!-- Escape Menu -->
+    <div id="menu-overlay"></div>
+    <div id="escape-menu">
+        <h2>Settings</h2>
+
+        <div class="menu-option">
+            <h3>Graphics Quality</h3>
+            <p>Adjust visual quality for better performance or visuals</p>
+            <button class="menu-button" id="quality-cycle-btn">
+                <span id="quality-mode-text">Auto</span>
+                <span class="current-value" id="quality-tier-text">Ultra</span>
+            </button>
+        </div>
+
+        <div class="menu-option">
+            <h3>Time of Day</h3>
+            <p>Control the sun/moon position and day/night cycle</p>
+            <div class="time-slider-container">
+                <span class="time-label">Night</span>
+                <input type="range" id="time-slider" min="0" max="100" value="50" class="time-slider">
+                <span class="time-label">Day</span>
+            </div>
+            <div class="time-button-container">
+                <button class="menu-button time-auto-button" id="time-auto-btn">
+                    <span id="time-mode-text">Auto Cycle</span>
+                </button>
+            </div>
+        </div>
+
+        <div class="menu-option">
+            <h3>Performance Profiler</h3>
+            <p>Show detailed performance metrics for debugging</p>
+            <button class="menu-button" id="profiler-toggle-btn">
+                <span id="profiler-status-text">Off</span>
+            </button>
+        </div>
+
+        <div class="menu-close-hint">Press ESC to close</div>
+    </div>
+
+    <div id="spotify-player" class="minimized">
+        <button id="spotify-toggle" onclick="toggleSpotify(event)">+</button>
+        <iframe id="spotify-iframe"
+                width="100%"
+                height="180"
+                scrolling="no"
+                frameBorder="0"
+                allow="autoplay"
+                src="https://w.soundcloud.com/player/?url=https%3A//soundcloud.com/vinceguaraldiquintet/sets/a-charlie-brown-thanksgiving&color=%23000000&auto_play=false&hide_related=false&show_comments=false&show_user=true&show_reposts=false&show_teaser=false">
+        </iframe>
+    </div>
+
+    <!-- Interaction Prompt -->
+    <div id="interaction-prompt" style="display: none;">
+        Press <span class="key-hint">E</span> to interact
+    </div>
+
+    <!-- Radial Menu -->
+    <div id="radial-menu" style="display: none;">
+        <div id="radial-menu-center"></div>
+        <div id="radial-menu-items"></div>
+    </div>
+
+    <div id="loading-screen">
+        <div id="loading-content">
+            <h1>Max's World</h1>
+            <div id="loading-bar-container">
+                <div id="loading-bar"></div>
+            </div>
+            <p id="loading-text">Loading... 0%</p>
+            <div id="controls-info">
+                <h3>Controls</h3>
+                <p><strong>WASD</strong> - Move</p>
+                <p><strong>Space</strong> - Jump</p>
+                <p><strong>Mouse</strong> - Look around</p>
+                <p><strong>Scroll Wheel</strong> - Zoom in/out</p>
+                <p><strong>F</strong> - Toggle bird's eye view</p>
+                <p><strong>X</strong> - Reset to spawn</p>
+            </div>
+        </div>
+    </div>
+
+    <div id="intro-screen">
+        <div id="intro-content">
+            <h1>Max's World</h1>
+            <p id="enter-prompt">Press ENTER to begin</p>
+        </div>
+    </div>
+
+    <!-- Fade overlay for intro animation -->
+    <div id="intro-fade-overlay"></div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
